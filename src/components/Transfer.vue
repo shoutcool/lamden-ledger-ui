@@ -83,6 +83,8 @@ export default {
       txSuccess: undefined,
       txErrorMsg: "",
       error: "",
+      timerBalance: undefined,
+      timerTxStatus: undefined,
     };
   },
   props: {
@@ -139,8 +141,11 @@ export default {
           console.log(response);
           this.txHash = response.hash;
 
-          setTimeout(() => {
+          this.timerBalance = setInterval(() => {
             this.updateBalance(this.account);
+          }, 5000);
+
+          this.timerTxStatus = setInterval(() => {
             this.readTxStatus(this.txHash);
           }, 5000);
         })
@@ -159,6 +164,7 @@ export default {
             this.txSuccess = false;
             this.txErrorMsg = tx.result;
           }
+          clearInterval(this.timerTxStatus);
         });
     },
     updateBalance: function (account) {
@@ -169,6 +175,7 @@ export default {
         .then((response) => response.json())
         .then((data) => {
           this.balance = data.value.__fixed__;
+          clearInterval(this.timerBalance);
         });
     },
   },
