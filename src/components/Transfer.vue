@@ -31,13 +31,26 @@
       </li>
       <li v-if="isTxHashAvailable">
         <label>Transaction Hash</label>
-        <span class="plainValue">
-          <a :href="txLink">{{ txHash }}</a>
+        <span>
+          <a :href="txLink" class="plainValue">{{ txHash }}</a>
         </span>
+      </li>
+      <li v-if="isTxStatusAvailable">
+        <label>Transaction Status</label>
+        <p
+          v-bind:class="{
+            success: txSuccess === true,
+            failed: txSuccess === false,
+            plainValue: txSuccess !== undefined,
+          }"
+        >
+          {{ txSuccess === true ? "Success" : "Failed: " }}
+          <span v-if="isTxErrorAvailable"> {{ txErrorMsg }}</span>
+        </p>
       </li>
       <li v-if="isErrorAvailable" class="error">
         <label>Error</label>
-        <span class="plainValue">{{ error }}</span>
+        <p class="plainValue">{{ error }}</p>
       </li>
       <li class="centered">
         <button :disabled="isSendingDisabled" type="submit">Send</button>
@@ -67,6 +80,8 @@ export default {
       to: "",
       amount: 0,
       txHash: "",
+      txSuccess: undefined,
+      txErrorMsg: "",
       error: "",
     };
   },
@@ -89,6 +104,12 @@ export default {
     txLink: function () {
       return `https://mainnet.lamden.io/transactions/${this.txHash}`;
     },
+    isTxStatusAvailable: function () {
+      return this.txSuccess !== undefined;
+    },
+    isTxErrorAvailable: function () {
+      return this.txErrorMsg !== undefined && this.txErrorMsg.length > 0;
+    },
   },
   methods: {
     onSubmit: function () {
@@ -106,21 +127,38 @@ export default {
 
       console.log(JSON.stringify(tx));
 
+      this.txHash = "";
+      this.error = "";
+      this.txSuccess = undefined;
+      this.txErrorMsg = "";
+
       lamden
         .sendTransaction(tx)
         .then((response) => response.json())
         .then((response) => {
           console.log(response);
           this.txHash = response.hash;
-          this.error = "";
 
           setTimeout(() => {
             this.updateBalance(this.account);
+            this.readTxStatus(this.txHash);
           }, 5000);
         })
         .catch((e) => {
           this.txHash = "";
           this.error = e;
+        });
+    },
+    readTxStatus: function (txHash) {
+      fetch("https://masternode-01.lamden.io/tx?hash=" + txHash)
+        .then((response) => response.json())
+        .then((tx) => {
+          if (tx.status === 0) {
+            this.txSuccess = true;
+          } else {
+            this.txSuccess = false;
+            this.txErrorMsg = tx.result;
+          }
         });
     },
     updateBalance: function (account) {
@@ -153,6 +191,14 @@ export default {
 <style scoped>
 ul {
   padding: 0;
+}
+
+.success {
+  color: lightgreen;
+}
+
+.failed {
+  color: rgb(250, 46, 46);
 }
 
 .error {
