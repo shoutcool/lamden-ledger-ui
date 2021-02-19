@@ -127,6 +127,12 @@ export default {
         stampLimit: 200,
       };
 
+      if (this.amount % 1 != 0) {
+        let decimalPart = {};
+        decimalPart["__fixed__"] = new String(this.amount);
+        tx.kwargs.amount = decimalPart;
+      }
+
       console.log(JSON.stringify(tx));
 
       this.txHash = "";
