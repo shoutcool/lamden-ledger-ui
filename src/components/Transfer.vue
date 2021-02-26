@@ -70,7 +70,7 @@
 
 
 <script>
-import * as lamden from "../scripts/ledger.js";
+import * as lamden from "lamden-ledger";
 
 export default {
   name: "TransferForm",

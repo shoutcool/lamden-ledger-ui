@@ -29,7 +29,7 @@
 
 <script>
 // eslint-disable-next-line no-unused-vars
-import * as lamden from "../scripts/ledger.js";
+import * as lamden from "lamden-ledger";
 export default {
   name: "Ledger",
   computed: {
