@@ -2,7 +2,11 @@
   <h1>Lamden Ledger Wallet</h1>
   <div class="container">
     <Ledger @account="updateAccount($event)" class="ledgerStatus" />
-    <TransferForm :account="account" class="transferForm" />
+    <TransferForm
+      @account="updateAccount($event)"
+      :account="account"
+      class="transferForm"
+    />
   </div>
 </template>
 
