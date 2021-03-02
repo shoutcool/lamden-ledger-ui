@@ -1,5 +1,10 @@
 # How to use the Lamden Ledger Wallet
 
+This is the official documenation of the Lamden Ledger Wallet.<br>
+With this wallet you can Transfer Lamden TAU on the mainnet or the testnet. <br>
+There is <span style="color: red;">currently no support for thirdparty smart contracts</span>, therefore the ledger wallet is mainly used as cold storage.<br>
+For interacting with Lamden DApps, please use the official <a href="https://chrome.google.com/webstore/detail/lamden-wallet-browser-ext/fhfffofbcgbjjojdnpcfompojdjjhdim" style="text-decoration: none; color: lightgreen">Chrome Wallet</a>
+
 ## Prerequisites
 
 To use the Lamden Ledger wallet you need to...
@@ -75,5 +80,10 @@ if you reject, nothing happens and you can correct the mistake and try again.
 ## Transaction Status
 After making a transaction the Wallet will show the Link to your Transaction (in Lamden's Block-Explorer)<br>
 You will also see a quick result if the transaction was successful or if it failed.
+
+## Support
+Feel free to open any issues at: <a href="https://github.com/shoutcool/lamden-ledger-ui" style="text-decoration: none; color: lightgreen">https://github.com/shoutcool/lamden-ledger-ui</a>
+
+
 
 <br><br><br><br><br><br><br><br><br><br>
