@@ -2,27 +2,13 @@
   <div>
     <button @click="readPublicKey">Connect to Ledger</button>
   </div>
-
-  <!-- <div class="ledger-container">
-    <div>
-      Ledger Status:
-      {{ ledger.publicKey }}
-    </div>
-    <div>
-      <span v-if="ledger.readyToConnect" class="connected"
-        >ready to connect</span
-      >
-      <span v-if="!ledger.readyToConnect" class="notConnected"
-        >please attach Ledger device</span
-      >
-    </div>
-    <div v-if="ledger.connected">Current Address</div>
-    <div v-if="ledger.connected">
-      <a :href="walletLink">{{ ledger.account }}</a>
-    </div>
-  </div> -->
+  <div class="error" v-if="errorMsg != null">
+    <p>Error occured: {{ errorMsg }}</p>
+  </div>
+  <div v-if="ledgerApprovalPending">
+    <p>Please approve on your ledger to continue...</p>
+  </div>
 </template>
-
 
 
 
@@ -30,17 +16,35 @@
 <script>
 // eslint-disable-next-line no-unused-vars
 import * as lamden from "lamden-ledger";
+
 export default {
   name: "Ledger",
+  data() {
+    return {
+      errorMsg: null,
+      ledgerApprovalPending: false,
+    };
+  },
   methods: {
     readPublicKey: function () {
+      this.errorMsg = null;
+      this.ledgerApprovalPending = true;
+
       lamden
         .getPublicKey(0)
         .then((e) => {
           this.$emit("account", e);
         })
-        .catch((a) => console.log(a))
+        .catch((e) => {
+          if ("DisconnectedDeviceDuringOperation" === e.name) {
+            this.errorMsg =
+              "device disconnected! please reload the Lamden Ledger Wallet and start again";
+          } else {
+            this.errorMsg = e.message;
+          }
+        })
         .finally(() => {
+          this.ledgerApprovalPending = false;
           lamden.close().then((y) => {});
         });
     },
@@ -66,6 +70,10 @@ export default {
 
 
 <style scoped>
+.error {
+  color: red;
+}
+
 .ledger-container {
   display: flex;
   flex-wrap: wrap;

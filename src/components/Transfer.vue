@@ -1,9 +1,12 @@
 <template>
+  <div v-if="ledgerApprovalPending">
+    Please approve on your ledger to continue...
+  </div>
   <form v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
     <ul class="flex-outer">
       <li v-if="!ledgerApprovalPending">
         <label>Network</label>
-        <label>{{ mainnet ? "Mainnet" : "Testnet" }}</label>
+        <label>{{ isMainnet ? "Mainnet" : "Testnet" }}</label>
       </li>
       <li>
         <label v-if="!ledgerApprovalPending" for="index">KeyIndex</label>
@@ -17,9 +20,6 @@
           inline
           controls
         ></vue-number-input>
-        <div v-if="ledgerApprovalPending">
-          Please approve on your ledger to continue...
-        </div>
       </li>
 
       <li v-if="!ledgerApprovalPending">
@@ -48,7 +48,8 @@
       </li>
       <li v-if="!ledgerApprovalPending">
         <label for="amount">Available Balance</label>
-        <p class="plainValue">{{ balance }}</p>
+        <p v-if="!updatingBalance" class="plainValue">{{ balance }}</p>
+        <p v-if="updatingBalance" class="plainValue updating">updating...</p>
       </li>
       <li v-if="isTxHashAvailable">
         <label>Transaction Hash</label>
@@ -102,13 +103,16 @@ export default {
       error: "",
       timerBalance: undefined,
       timerTxStatus: undefined,
+      updatingBalance: false,
     };
   },
   props: {
     account: String,
-    mainnet: Boolean,
   },
   computed: {
+    isMainnet: function () {
+      return this.$store.state.mainnet;
+    },
     isSendingDisabled: function () {
       return !(this.account !== undefined && this.account.length == 64);
     },
@@ -120,12 +124,12 @@ export default {
     },
     walletLink: function () {
       return `https://${
-        this.mainnet ? "mainnet" : "explorer"
+        this.$store.state.mainnet ? "mainnet" : "explorer"
       }.lamden.io/addresses/${this.account}`;
     },
     txLink: function () {
       return `https://${
-        this.mainnet ? "mainnet" : "explorer"
+        this.$store.state.mainnet ? "mainnet" : "explorer"
       }.lamden.io/transactions/${this.txHash}`;
     },
     isTxStatusAvailable: function () {
@@ -142,14 +146,26 @@ export default {
         this.txHash = undefined;
         this.txSuccess = undefined;
         this.ledgerApprovalPending = true;
+        this.error = "";
 
         lamden
           .getPublicKey(newValue)
           .then((e) => {
             this.$emit("account", e);
           })
-          .catch((a) => console.log(a))
+          .catch((e) => {
+            this.ledgerIndex = oldValue;
+            if ("DisconnectedDeviceDuringOperation" === e.name) {
+              this.txHash = "";
+              this.error =
+                "device disconnected! please reload the Lamden Ledger Wallet and start again";
+            } else {
+              this.txHash = "";
+              this.error = e.message;
+            }
+          })
           .finally(() => {
+            this.ledgerApprovalPending = false;
             lamden.close().then((y) => {});
           });
       }
@@ -157,7 +173,7 @@ export default {
     onSubmit: function () {
       let tx = {
         sender: this.account,
-        network: this.mainnet ? "mainnet" : "testnet",
+        network: this.$store.state.mainnet ? "mainnet" : "testnet",
         kwargs: {
           to: this.to,
           amount: this.amount,
@@ -186,26 +202,36 @@ export default {
         .then((response) => response.json())
         .then((response) => {
           console.log(response);
-          this.txHash = response.hash;
 
-          this.timerBalance = setInterval(() => {
-            this.updateBalance(this.account);
-          }, 5000);
+          if (response.error) {
+            this.error = response.error;
+          } else {
+            this.txHash = response.hash;
 
-          this.timerTxStatus = setInterval(() => {
-            this.readTxStatus(this.txHash);
-          }, 5000);
+            this.timerBalance = setInterval(() => {
+              this.updateBalance(this.account);
+            }, 5000);
+
+            this.timerTxStatus = setInterval(() => {
+              this.readTxStatus(this.txHash);
+            }, 5000);
+          }
         })
         .catch((e) => {
-          console.log(e);
-          this.txHash = "";
-          this.error = e;
+          if ("DisconnectedDeviceDuringOperation" === e.name) {
+            this.txHash = "";
+            this.error =
+              "device disconnected! please reload the Lamden Ledger Wallet and start again";
+          } else {
+            this.txHash = "";
+            this.error = e.message;
+          }
         });
     },
     readTxStatus: function (txHash) {
       fetch(
         `https://${
-          this.mainnet ? "masternode-01" : "testnet-master-1"
+          this.$store.state.mainnet ? "masternode-01" : "testnet-master-1"
         }.lamden.io/tx?hash=${txHash}`
       )
         .then((response) => response.json())
@@ -220,9 +246,11 @@ export default {
         });
     },
     updateBalance: function (account) {
+      this.updatingBalance = true;
+
       fetch(
         `https://${
-          this.mainnet ? "masternode-01" : "testnet-master-1"
+          this.$store.state.mainnet ? "masternode-01" : "testnet-master-1"
         }.lamden.io/contracts/currency/balances?key=${account}`
       )
         .then((response) => response.json())
@@ -235,6 +263,14 @@ export default {
             this.balance = data.value;
           }
           clearInterval(this.timerBalance);
+        })
+        .catch(function (error) {
+          console.error(
+            error
+          ); /* this line can also throw, e.g. when console = {} */
+        })
+        .finally(() => {
+          this.updatingBalance = false;
         });
     },
   },
@@ -244,7 +280,7 @@ export default {
       this.ledgerApprovalPending = false;
       this.updateBalance(newValue);
     },
-    mainnet() {
+    isMainnet() {
       this.txHash = undefined;
       this.txSuccess = undefined;
       this.updateBalance(this.account);
@@ -260,6 +296,10 @@ export default {
 
 
 <style >
+.updating {
+  color: rgb(210, 97, 214);
+}
+
 .vue-number-input__input {
   background: none !important;
   color: white !important;
@@ -309,6 +349,10 @@ export default {
 <style scoped>
 ul {
   padding: 0;
+}
+
+form {
+  width: 60%;
 }
 
 .success {
