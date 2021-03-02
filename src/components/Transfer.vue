@@ -1,13 +1,34 @@
 <template>
   <form v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
     <ul class="flex-outer">
+      <li v-if="!ledgerApprovalPending">
+        <label>Network</label>
+        <label>{{ mainnet ? "Mainnet" : "Testnet" }}</label>
+      </li>
       <li>
+        <label v-if="!ledgerApprovalPending" for="index">KeyIndex</label>
+        <vue-number-input
+          v-model="ledgerIndex"
+          v-if="!ledgerApprovalPending"
+          :min="0"
+          :max="1024"
+          size="small"
+          @update:model-value="onUpdate"
+          inline
+          controls
+        ></vue-number-input>
+        <div v-if="ledgerApprovalPending">
+          Please approve on your ledger to continue...
+        </div>
+      </li>
+
+      <li v-if="!ledgerApprovalPending">
         <label for="destination">Account</label>
         <span class="plainValue">
           <a :href="walletLink">{{ account }}</a>
         </span>
       </li>
-      <li>
+      <li v-if="!ledgerApprovalPending">
         <label for="destination">Destination</label>
         <input
           type="text"
@@ -16,7 +37,7 @@
           v-model="to"
         />
       </li>
-      <li>
+      <li v-if="!ledgerApprovalPending">
         <label for="amount">Amount</label>
         <input
           type="text"
@@ -25,7 +46,7 @@
           v-model.number="amount"
         />
       </li>
-      <li>
+      <li v-if="!ledgerApprovalPending">
         <label for="amount">Available Balance</label>
         <p class="plainValue">{{ balance }}</p>
       </li>
@@ -52,7 +73,7 @@
         <label>Error</label>
         <p class="plainValue">{{ error }}</p>
       </li>
-      <li class="centered">
+      <li v-if="!ledgerApprovalPending" class="centered">
         <button :disabled="isSendingDisabled" type="submit">Send</button>
       </li>
     </ul>
@@ -63,19 +84,15 @@
 
 
 
-
-
-
-
-
-
 <script>
-import * as lamden from "../scripts/ledger.js";
+import * as lamden from "lamden-ledger";
 
 export default {
   name: "TransferForm",
   data() {
     return {
+      ledgerIndex: 0,
+      ledgerApprovalPending: false,
       balance: 0,
       to: "",
       amount: 0,
@@ -89,6 +106,7 @@ export default {
   },
   props: {
     account: String,
+    mainnet: Boolean,
   },
   computed: {
     isSendingDisabled: function () {
@@ -101,10 +119,14 @@ export default {
       return this.error !== undefined && this.error.length > 0;
     },
     walletLink: function () {
-      return `https://mainnet.lamden.io/addresses/${this.account}`;
+      return `https://${
+        this.mainnet ? "mainnet" : "explorer"
+      }.lamden.io/addresses/${this.account}`;
     },
     txLink: function () {
-      return `https://mainnet.lamden.io/transactions/${this.txHash}`;
+      return `https://${
+        this.mainnet ? "mainnet" : "explorer"
+      }.lamden.io/transactions/${this.txHash}`;
     },
     isTxStatusAvailable: function () {
       return this.txSuccess !== undefined;
@@ -114,10 +136,28 @@ export default {
     },
   },
   methods: {
+    onUpdate(newValue, oldValue) {
+      console.log(newValue, oldValue);
+      if (!isNaN(oldValue)) {
+        this.txHash = undefined;
+        this.txSuccess = undefined;
+        this.ledgerApprovalPending = true;
+
+        lamden
+          .getPublicKey(newValue)
+          .then((e) => {
+            this.$emit("account", e);
+          })
+          .catch((a) => console.log(a))
+          .finally(() => {
+            lamden.close().then((y) => {});
+          });
+      }
+    },
     onSubmit: function () {
       let tx = {
         sender: this.account,
-        network: "mainnet",
+        network: this.mainnet ? "mainnet" : "testnet",
         kwargs: {
           to: this.to,
           amount: this.amount,
@@ -125,6 +165,7 @@ export default {
         contractName: "currency",
         methodName: "transfer",
         stampLimit: 200,
+        ledgerKeyIndex: this.ledgerIndex,
       };
 
       if (this.amount % 1 != 0) {
@@ -156,12 +197,17 @@ export default {
           }, 5000);
         })
         .catch((e) => {
+          console.log(e);
           this.txHash = "";
           this.error = e;
         });
     },
     readTxStatus: function (txHash) {
-      fetch("https://masternode-01.lamden.io/tx?hash=" + txHash)
+      fetch(
+        `https://${
+          this.mainnet ? "masternode-01" : "testnet-master-1"
+        }.lamden.io/tx?hash=${txHash}`
+      )
         .then((response) => response.json())
         .then((tx) => {
           if (tx.status === 0) {
@@ -175,19 +221,33 @@ export default {
     },
     updateBalance: function (account) {
       fetch(
-        "https://masternode-01.lamden.io/contracts/currency/balances?key=" +
-          account
+        `https://${
+          this.mainnet ? "masternode-01" : "testnet-master-1"
+        }.lamden.io/contracts/currency/balances?key=${account}`
       )
         .then((response) => response.json())
         .then((data) => {
-          this.balance = data.value.__fixed__;
+          if (data.value === null) {
+            this.balance = 0;
+          } else if (data.value.__fixed__) {
+            this.balance = data.value.__fixed__;
+          } else {
+            this.balance = data.value;
+          }
           clearInterval(this.timerBalance);
         });
     },
   },
   watch: {
     account(newValue, oldValue) {
+      console.log("updating balance...");
+      this.ledgerApprovalPending = false;
       this.updateBalance(newValue);
+    },
+    mainnet() {
+      this.txHash = undefined;
+      this.txSuccess = undefined;
+      this.updateBalance(this.account);
     },
   },
 };
@@ -199,7 +259,52 @@ export default {
 
 
 
+<style >
+.vue-number-input__input {
+  background: none !important;
+  color: white !important;
+  border: 0px !important;
+}
 
+.vue-number-input__button:disabled {
+  cursor: not-allowed;
+}
+
+.vue-number-input__button {
+  cursor: pointer;
+}
+
+.vue-number-input__button:disabled::before {
+  background-color: rgb(146, 145, 145) !important;
+}
+
+.vue-number-input__button:disabled::after {
+  background-color: rgb(146, 145, 145) !important;
+}
+
+.vue-number-input__button::after {
+  background-color: white !important;
+  width: 2px !important;
+}
+
+.vue-number-input__button::before {
+  background-color: white !important;
+  height: 2px !important;
+}
+
+.vue-number-input__button {
+  background: none !important;
+  color: white !important;
+  border: 2px solid rgb(158, 20, 121) !important;
+  border-radius: 5px !important;
+}
+
+.vue-number-input__button--minus,
+.vue-number-input__button--plus {
+  color: white !important;
+  opacity: 1 !important;
+}
+</style>
 
 <style scoped>
 ul {
@@ -222,6 +327,11 @@ ul {
 
 .plainValue {
   padding-left: 12px;
+}
+
+.vue-number-input {
+  margin: 8px 0;
+  width: 150px;
 }
 
 input[type="text"] {
