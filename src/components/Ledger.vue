@@ -2,25 +2,6 @@
   <div>
     <button @click="readPublicKey">Connect to Ledger</button>
   </div>
-
-  <!-- <div class="ledger-container">
-    <div>
-      Ledger Status:
-      {{ ledger.publicKey }}
-    </div>
-    <div>
-      <span v-if="ledger.readyToConnect" class="connected"
-        >ready to connect</span
-      >
-      <span v-if="!ledger.readyToConnect" class="notConnected"
-        >please attach Ledger device</span
-      >
-    </div>
-    <div v-if="ledger.connected">Current Address</div>
-    <div v-if="ledger.connected">
-      <a :href="walletLink">{{ ledger.account }}</a>
-    </div>
-  </div> -->
 </template>
 
 
@@ -30,8 +11,15 @@
 <script>
 // eslint-disable-next-line no-unused-vars
 import * as lamden from "lamden-ledger";
+import howToMarkdownFile from "@/assets/markdown/howto.md";
+
 export default {
   name: "Ledger",
+  data() {
+    return {
+      source: howToMarkdownFile,
+    };
+  },
   methods: {
     readPublicKey: function () {
       lamden

@@ -48,7 +48,8 @@
       </li>
       <li v-if="!ledgerApprovalPending">
         <label for="amount">Available Balance</label>
-        <p class="plainValue">{{ balance }}</p>
+        <p v-if="!updatingBalance" class="plainValue">{{ balance }}</p>
+        <p v-if="updatingBalance" class="plainValue">updating</p>
       </li>
       <li v-if="isTxHashAvailable">
         <label>Transaction Hash</label>
@@ -102,6 +103,7 @@ export default {
       error: "",
       timerBalance: undefined,
       timerTxStatus: undefined,
+      updatingBalance: false,
     };
   },
   props: {
@@ -220,6 +222,8 @@ export default {
         });
     },
     updateBalance: function (account) {
+      this.updatingBalance = true;
+
       fetch(
         `https://${
           this.mainnet ? "masternode-01" : "testnet-master-1"
@@ -235,6 +239,14 @@ export default {
             this.balance = data.value;
           }
           clearInterval(this.timerBalance);
+        })
+        .catch(function (error) {
+          console.error(
+            error
+          ); /* this line can also throw, e.g. when console = {} */
+        })
+        .finally(() => {
+          this.updatingBalance = false;
         });
     },
   },

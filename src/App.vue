@@ -1,5 +1,12 @@
 <template>
   <div id="toolbar">
+    <router-link v-if="this.$route.name != 'HowTo'" to="/howto"
+      >How to</router-link
+    >
+    <router-link v-if="this.$route.name === 'HowTo'" to="/"
+      >Back to Wallet</router-link
+    >
+
     <Toggle
       v-model="mainnet"
       @change="onNetworkChange"
@@ -15,21 +22,10 @@
       }"
     />
   </div>
-  <h1>Lamden Ledger Wallet</h1>
-  <div class="container">
-    <Ledger @account="updateAccount($event)" class="ledgerStatus" />
-    <TransferForm
-      @account="updateAccount($event)"
-      :mainnet="mainnet"
-      :account="account"
-      class="transferForm"
-    />
-  </div>
+  <router-view />
 </template>
 
 <script>
-import TransferForm from "./components/Transfer.vue";
-import Ledger from "./components/Ledger.vue";
 import Toggle from "@vueform/toggle";
 
 export default {
@@ -44,14 +40,8 @@ export default {
     onNetworkChange(value) {
       this.mainnet = value;
     },
-    updateAccount: function (e) {
-      this.account = e.replace("ed25519:", "");
-      console.log(this.account);
-    },
   },
   components: {
-    TransferForm,
-    Ledger,
     Toggle,
   },
 };
@@ -75,12 +65,13 @@ body {
 
 #toolbar {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .toggle-input {
-  margin: 20px;
+  margin: 20px 20px 20px 40px;
 }
 
 .container {
@@ -89,19 +80,14 @@ body {
   align-items: center;
 }
 
-.transferForm {
-  width: 50%;
+a {
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 400;
+  color: white;
 }
 
-.ledgerStatus {
-  width: 50%;
-}
-
-h1 {
-  font-size: 60px;
-  background: -webkit-linear-gradient(rgb(210, 97, 214), rgb(158, 20, 121));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+a:hover {
+  color: rgb(210, 97, 214);
 }
 </style>
