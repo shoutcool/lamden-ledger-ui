@@ -32,11 +32,6 @@
 import * as lamden from "lamden-ledger";
 export default {
   name: "Ledger",
-  computed: {
-    walletLink: function () {
-      return `https://mainnet.lamden.io/addresses/${this.ledger.account}`;
-    },
-  },
   methods: {
     readPublicKey: function () {
       lamden

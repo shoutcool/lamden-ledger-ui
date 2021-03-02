@@ -1,10 +1,15 @@
 <template>
   <form v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
     <ul class="flex-outer">
+      <li v-if="!ledgerApprovalPending">
+        <label>Network</label>
+        <label>{{ mainnet ? "Mainnet" : "Testnet" }}</label>
+      </li>
       <li>
-        <label for="index">KeyIndex</label>
+        <label v-if="!ledgerApprovalPending" for="index">KeyIndex</label>
         <vue-number-input
           v-model="ledgerIndex"
+          v-if="!ledgerApprovalPending"
           :min="0"
           :max="1024"
           size="small"
@@ -12,9 +17,9 @@
           inline
           controls
         ></vue-number-input>
-        <span v-if="ledgerApprovalPending"
-          >Please approve on your ledger to continue...</span
-        >
+        <div v-if="ledgerApprovalPending">
+          Please approve on your ledger to continue...
+        </div>
       </li>
 
       <li v-if="!ledgerApprovalPending">
@@ -101,6 +106,7 @@ export default {
   },
   props: {
     account: String,
+    mainnet: Boolean,
   },
   computed: {
     isSendingDisabled: function () {
@@ -113,10 +119,14 @@ export default {
       return this.error !== undefined && this.error.length > 0;
     },
     walletLink: function () {
-      return `https://mainnet.lamden.io/addresses/${this.account}`;
+      return `https://${
+        this.mainnet ? "mainnet" : "explorer"
+      }.lamden.io/addresses/${this.account}`;
     },
     txLink: function () {
-      return `https://mainnet.lamden.io/transactions/${this.txHash}`;
+      return `https://${
+        this.mainnet ? "mainnet" : "explorer"
+      }.lamden.io/transactions/${this.txHash}`;
     },
     isTxStatusAvailable: function () {
       return this.txSuccess !== undefined;
@@ -129,6 +139,8 @@ export default {
     onUpdate(newValue, oldValue) {
       console.log(newValue, oldValue);
       if (!isNaN(oldValue)) {
+        this.txHash = undefined;
+        this.txSuccess = undefined;
         this.ledgerApprovalPending = true;
 
         lamden
@@ -145,7 +157,7 @@ export default {
     onSubmit: function () {
       let tx = {
         sender: this.account,
-        network: "mainnet",
+        network: this.mainnet ? "mainnet" : "testnet",
         kwargs: {
           to: this.to,
           amount: this.amount,
@@ -191,7 +203,11 @@ export default {
         });
     },
     readTxStatus: function (txHash) {
-      fetch("https://masternode-01.lamden.io/tx?hash=" + txHash)
+      fetch(
+        `https://${
+          this.mainnet ? "masternode-01" : "testnet-master-1"
+        }.lamden.io/tx?hash=${txHash}`
+      )
         .then((response) => response.json())
         .then((tx) => {
           if (tx.status === 0) {
@@ -205,8 +221,9 @@ export default {
     },
     updateBalance: function (account) {
       fetch(
-        "https://masternode-01.lamden.io/contracts/currency/balances?key=" +
-          account
+        `https://${
+          this.mainnet ? "masternode-01" : "testnet-master-1"
+        }.lamden.io/contracts/currency/balances?key=${account}`
       )
         .then((response) => response.json())
         .then((data) => {
@@ -226,6 +243,11 @@ export default {
       console.log("updating balance...");
       this.ledgerApprovalPending = false;
       this.updateBalance(newValue);
+    },
+    mainnet() {
+      this.txHash = undefined;
+      this.txSuccess = undefined;
+      this.updateBalance(this.account);
     },
   },
 };
