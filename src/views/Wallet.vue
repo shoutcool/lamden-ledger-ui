@@ -4,7 +4,6 @@
     <Ledger @account="updateAccount($event)" class="ledgerStatus" />
     <TransferForm
       @account="updateAccount($event)"
-      :mainnet="mainnet"
       :account="account"
       class="transferForm"
     />

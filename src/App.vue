@@ -12,8 +12,8 @@
       @change="onNetworkChange"
       on-label="Mainnet"
       off-label="Testnet"
-      width="100"
-      height="30"
+      :width="100"
+      :height="30"
       :colors="{
         text: {
           on: '#000000',
@@ -38,7 +38,7 @@ export default {
   },
   methods: {
     onNetworkChange(value) {
-      this.mainnet = value;
+      this.$store.commit("networkChange", value);
     },
   },
   components: {
