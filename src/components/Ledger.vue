@@ -2,8 +2,13 @@
   <div>
     <button @click="readPublicKey">Connect to Ledger</button>
   </div>
+  <div class="error" v-if="errorMsg != null">
+    <p>Error occured: {{ errorMsg }}</p>
+  </div>
+  <div v-if="ledgerApprovalPending">
+    <p>Please approve on your ledger to continue...</p>
+  </div>
 </template>
-
 
 
 
@@ -11,24 +16,35 @@
 <script>
 // eslint-disable-next-line no-unused-vars
 import * as lamden from "lamden-ledger";
-import howToMarkdownFile from "@/assets/markdown/howto.md";
 
 export default {
   name: "Ledger",
   data() {
     return {
-      source: howToMarkdownFile,
+      errorMsg: null,
+      ledgerApprovalPending: false,
     };
   },
   methods: {
     readPublicKey: function () {
+      this.errorMsg = null;
+      this.ledgerApprovalPending = true;
+
       lamden
         .getPublicKey(0)
         .then((e) => {
           this.$emit("account", e);
         })
-        .catch((a) => console.log(a))
+        .catch((e) => {
+          if ("DisconnectedDeviceDuringOperation" === e.name) {
+            this.errorMsg =
+              "device disconnected! please reload the Lamden Ledger Wallet and start again";
+          } else {
+            this.errorMsg = e.message;
+          }
+        })
         .finally(() => {
+          this.ledgerApprovalPending = false;
           lamden.close().then((y) => {});
         });
     },
@@ -54,6 +70,10 @@ export default {
 
 
 <style scoped>
+.error {
+  color: red;
+}
+
 .ledger-container {
   display: flex;
   flex-wrap: wrap;

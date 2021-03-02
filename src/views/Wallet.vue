@@ -1,7 +1,11 @@
 <template>
   <h1>Lamden Ledger Wallet</h1>
   <div class="container">
-    <Ledger @account="updateAccount($event)" class="ledgerStatus" />
+    <Ledger
+      v-if="account.length == 0"
+      @account="updateAccount($event)"
+      class="ledgerStatus"
+    />
     <TransferForm
       @account="updateAccount($event)"
       :account="account"

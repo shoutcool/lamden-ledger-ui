@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <vue3-markdown-it :source="source" />
+  <div id="md">
+    <vue3-markdown-it :source="source" :html="true" />
   </div>
 </template>
 
@@ -19,3 +19,11 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+#md {
+  width: 60%;
+  margin-left: 20vw;
+  text-align: left;
+}
+</style>

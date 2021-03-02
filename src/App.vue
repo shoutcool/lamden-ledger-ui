@@ -80,14 +80,14 @@ body {
   align-items: center;
 }
 
-a {
+#toolbar a {
   text-decoration: none;
   font-size: 20px;
   font-weight: 400;
   color: white;
 }
 
-a:hover {
+#toolbar a:hover {
   color: rgb(210, 97, 214);
 }
 </style>

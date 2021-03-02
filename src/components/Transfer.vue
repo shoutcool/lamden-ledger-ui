@@ -1,4 +1,7 @@
 <template>
+  <div v-if="ledgerApprovalPending">
+    Please approve on your ledger to continue...
+  </div>
   <form v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
     <ul class="flex-outer">
       <li v-if="!ledgerApprovalPending">
@@ -17,9 +20,6 @@
           inline
           controls
         ></vue-number-input>
-        <div v-if="ledgerApprovalPending">
-          Please approve on your ledger to continue...
-        </div>
       </li>
 
       <li v-if="!ledgerApprovalPending">
@@ -146,14 +146,26 @@ export default {
         this.txHash = undefined;
         this.txSuccess = undefined;
         this.ledgerApprovalPending = true;
+        this.error = "";
 
         lamden
           .getPublicKey(newValue)
           .then((e) => {
             this.$emit("account", e);
           })
-          .catch((a) => console.log(a))
+          .catch((e) => {
+            this.ledgerIndex = oldValue;
+            if ("DisconnectedDeviceDuringOperation" === e.name) {
+              this.txHash = "";
+              this.error =
+                "device disconnected! please reload the Lamden Ledger Wallet and start again";
+            } else {
+              this.txHash = "";
+              this.error = e.message;
+            }
+          })
           .finally(() => {
+            this.ledgerApprovalPending = false;
             lamden.close().then((y) => {});
           });
       }
@@ -190,20 +202,30 @@ export default {
         .then((response) => response.json())
         .then((response) => {
           console.log(response);
-          this.txHash = response.hash;
 
-          this.timerBalance = setInterval(() => {
-            this.updateBalance(this.account);
-          }, 5000);
+          if (response.error) {
+            this.error = response.error;
+          } else {
+            this.txHash = response.hash;
 
-          this.timerTxStatus = setInterval(() => {
-            this.readTxStatus(this.txHash);
-          }, 5000);
+            this.timerBalance = setInterval(() => {
+              this.updateBalance(this.account);
+            }, 5000);
+
+            this.timerTxStatus = setInterval(() => {
+              this.readTxStatus(this.txHash);
+            }, 5000);
+          }
         })
         .catch((e) => {
-          console.log(e);
-          this.txHash = "";
-          this.error = e;
+          if ("DisconnectedDeviceDuringOperation" === e.name) {
+            this.txHash = "";
+            this.error =
+              "device disconnected! please reload the Lamden Ledger Wallet and start again";
+          } else {
+            this.txHash = "";
+            this.error = e.message;
+          }
         });
     },
     readTxStatus: function (txHash) {
@@ -327,6 +349,10 @@ export default {
 <style scoped>
 ul {
   padding: 0;
+}
+
+form {
+  width: 60%;
 }
 
 .success {
