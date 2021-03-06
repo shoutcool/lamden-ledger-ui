@@ -3,7 +3,7 @@
     <button @click="readPublicKey">Connect to Ledger</button>
   </div>
   <div class="error" v-if="errorMsg != null">
-    <p>Error occured: {{ errorMsg }}</p>
+    <p>Error: {{ errorMsg }}</p>
   </div>
   <div v-if="ledgerApprovalPending">
     <p>Please approve on your ledger to continue...</p>
