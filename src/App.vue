@@ -23,6 +23,8 @@
     />
   </div>
   <router-view />
+  <!-- teleport target -->
+  <div id="modals"></div>
 </template>
 
 <script>
