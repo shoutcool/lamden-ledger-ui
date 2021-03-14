@@ -2,7 +2,7 @@
   <div v-if="ledgerApprovalPending">
     Please approve on your ledger to continue...
   </div>
-  <form v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
+  <form novalidate v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
     <ul class="flex-outer">
       <li v-if="!ledgerApprovalPending">
         <label>Network</label>
@@ -40,9 +40,9 @@
       <li v-if="!ledgerApprovalPending">
         <label for="amount">Amount</label>
         <input
-          type="text"
+          type="number"
           id="amount"
-          placeholder="Enter TAU amount to send"
+          placeholder="Enter amount to send"
           v-model.number="amount"
         />
       </li>
@@ -83,7 +83,9 @@
         <p class="plainValue">{{ error }}</p>
       </li>
       <li v-if="!ledgerApprovalPending" class="centered">
-        <button :disabled="isSendingDisabled" type="submit">Send</button>
+        <button :disabled="isSendingDisabled || sendingTx" type="submit">
+          {{ sendingTx ? "Please check Tx on your Ledger..." : "Send" }}
+        </button>
       </li>
     </ul>
   </form>
@@ -104,7 +106,7 @@ export default {
       ledgerApprovalPending: false,
       balance: 0,
       to: "",
-      amount: 0,
+      amount: null,
       txHash: "",
       txSuccess: undefined,
       txErrorMsg: "",
@@ -112,6 +114,7 @@ export default {
       timerBalance: undefined,
       timerTxStatus: undefined,
       updatingBalance: false,
+      sendingTx: false,
     };
   },
   props: {
@@ -204,6 +207,7 @@ export default {
       this.error = "";
       this.txSuccess = undefined;
       this.txErrorMsg = "";
+      this.sendingTx = true;
 
       lamden
         .sendTransaction(tx)
@@ -234,6 +238,9 @@ export default {
             this.txHash = "";
             this.error = e.message;
           }
+        })
+        .finally(() => {
+          this.sendingTx = false;
         });
     },
     readTxStatus: function (txHash) {
@@ -391,7 +398,8 @@ form {
   width: 150px;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="number"] {
   background: none;
   border: 2px solid rgb(158, 20, 121);
   padding: 12px 20px;
@@ -401,6 +409,12 @@ input[type="text"] {
   outline: none;
   box-shadow: none;
   color: white;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .flex-outer {
@@ -436,7 +450,7 @@ button {
 }
 
 button:disabled {
-  background-color: rgb(160, 160, 160); /* Green */
+  background-color: rgba(158, 20, 121, 0.4); /* Green */
   cursor: not-allowed;
 }
 
