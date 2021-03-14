@@ -50,6 +50,14 @@
         <label for="amount">Available Balance</label>
         <p v-if="!updatingBalance" class="plainValue">{{ balance }}</p>
         <p v-if="updatingBalance" class="plainValue updating">updating...</p>
+
+        <img
+          v-if="!updatingBalance"
+          class="refresh"
+          src="../assets/images/refresh.png"
+          width="23"
+          @click="updateBalance(account)"
+        />
       </li>
       <li v-if="isTxHashAvailable">
         <label>Transaction Hash</label>
@@ -296,6 +304,11 @@ export default {
 
 
 <style >
+.refresh {
+  cursor: pointer;
+  margin-left: 10px;
+}
+
 .updating {
   color: rgb(210, 97, 214);
 }
