@@ -2,7 +2,12 @@
   <div v-if="ledgerApprovalPending">
     Please approve on your ledger to continue...
   </div>
-  <form novalidate v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
+  <Form
+    v-if="!isSendingDisabled"
+    @submit="onSubmit"
+    :validation-schema="schema"
+    v-slot="{ errors }"
+  >
     <ul class="flex-outer">
       <li v-if="!ledgerApprovalPending">
         <label>Network</label>
@@ -23,31 +28,35 @@
       </li>
 
       <li v-if="!ledgerApprovalPending">
-        <label for="destination">Account</label>
+        <label>Account</label>
         <span class="plainValue">
           <a :href="walletLink">{{ account }}</a>
         </span>
       </li>
       <li v-if="!ledgerApprovalPending">
         <label for="destination">Destination</label>
-        <input
+        <Field
+          name="destination"
           type="text"
           id="destination"
           placeholder="Enter destination address"
           v-model="to"
         />
+        <div class="invalid-feedback">{{ errors.destination }}</div>
       </li>
       <li v-if="!ledgerApprovalPending">
         <label for="amount">Amount</label>
-        <input
+        <Field
+          name="amount"
           type="number"
           id="amount"
           placeholder="Enter amount to send"
-          v-model.number="amount"
+          v-model="amount"
         />
+        <div class="invalid-feedback">{{ errors.amount }}</div>
       </li>
       <li v-if="!ledgerApprovalPending">
-        <label for="amount">Available Balance</label>
+        <label>Available Balance</label>
         <p v-if="!updatingBalance" class="plainValue">{{ balance }}</p>
         <p v-if="updatingBalance" class="plainValue updating">updating...</p>
 
@@ -88,7 +97,7 @@
         </button>
       </li>
     </ul>
-  </form>
+  </Form>
 </template>
 
 
@@ -97,9 +106,39 @@
 
 <script>
 import * as lamden from "lamden-ledger";
+import { Field, Form } from "vee-validate";
+import * as Yup from "yup";
 
 export default {
   name: "TransferForm",
+  components: {
+    Field,
+    Form,
+  },
+  setup() {
+    const schema = Yup.object().shape({
+      destination: Yup.string()
+        .required("Destination is required")
+        .matches(
+          /^[a-f0-9]{64}$/,
+          "Not a valid lamden destination (public key)"
+        ),
+      amount: Yup.number()
+        .required("Amount is required")
+        .positive("Amount must be positive"),
+    });
+
+    const onSubmit = (values) => {
+      // display form values on success
+      alert("SUCCESS!! :-)\n\n" + JSON.stringify(values, null, 4));
+      submitForm();
+    };
+
+    return {
+      schema,
+      onSubmit,
+    };
+  },
   data() {
     return {
       ledgerIndex: 0,
@@ -181,7 +220,7 @@ export default {
           });
       }
     },
-    onSubmit: function () {
+    submitForm: function () {
       let tx = {
         sender: this.account,
         network: this.$store.state.mainnet ? "mainnet" : "testnet",
@@ -311,6 +350,10 @@ export default {
 
 
 <style >
+.invalid-feedback {
+  color: red;
+}
+
 .refresh {
   cursor: pointer;
   margin-left: 10px;

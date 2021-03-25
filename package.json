@@ -12,10 +12,12 @@
     "@vueform/toggle": "^1.1.0",
     "core-js": "^3.6.5",
     "lamden-ledger": "0.0.9",
+    "vee-validate": "^4.2.3",
     "vue": "^3.0.6",
     "vue-router": "^4.0.4",
     "vue3-markdown-it": "^1.0.7",
-    "vuex": "^4.0.0"
+    "vuex": "^4.0.0",
+    "yup": "^0.32.9"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",
