@@ -19,32 +19,26 @@
     }"
   >
     <div class="modal">
-      <h2>Terms of usage & Disclaimer</h2>
-      <p>
-        Please indicate that you have read and agree to the Terms of usage and
-        the Disclaimer
-      </p>
+      <h2>Terms of Service</h2>
+      <br />
       <div>
         <div class="inline-container">
           <label class="checkbox-container"
-            >I have read and agree to the terms of usage
+            >I have read and agree to the
+            <a href="/terms" target="_blank">Terms of Service</a>
             <input type="checkbox" v-model="termsAccepted" />
-            <span class="checkmark"></span>
-          </label>
-        </div>
-      </div>
-      <div>
-        <div class="inline-container">
-          <label class="checkbox-container"
-            >I have read and agree to the disclaimer
-            <input type="checkbox" v-model="disclaimerAccepted" />
             <span class="checkmark"></span>
           </label>
         </div>
       </div>
 
       <div class="button-container">
-        <button style="background-color: rgb(163, 163, 163)">Cancel</button>
+        <button
+          style="background-color: rgb(163, 163, 163)"
+          @click="isModalVisible = false"
+        >
+          Cancel
+        </button>
         <button
           :disabled="!allAccepted"
           @click="
@@ -52,7 +46,7 @@
             readPublicKey();
           "
         >
-          Continue at your own risk
+          Continue
         </button>
       </div>
     </div>
@@ -73,13 +67,12 @@ export default {
       errorMsg: null,
       ledgerApprovalPending: false,
       termsAccepted: false,
-      disclaimerAccepted: false,
       isModalVisible: false,
     };
   },
   computed: {
     allAccepted: function () {
-      return this.termsAccepted && this.disclaimerAccepted;
+      return this.termsAccepted;
     },
   },
   methods: {
@@ -134,6 +127,7 @@ export default {
   background-color: #fff;
   font-size: 16px;
   text-align: center;
+  margin-top: -100px;
 }
 
 .modal h2 {

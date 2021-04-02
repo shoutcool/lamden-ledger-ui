@@ -1,9 +1,13 @@
 <template>
   <div id="toolbar">
-    <router-link v-if="this.$route.name != 'HowTo'" to="/howto"
+    <router-link
+      v-if="this.$route.name != 'HowTo' && this.$route.name != 'Terms'"
+      to="/howto"
       >How to</router-link
     >
-    <router-link v-if="this.$route.name === 'HowTo'" to="/"
+    <router-link
+      v-if="this.$route.name === 'HowTo' || this.$route.name === 'Terms'"
+      to="/"
       >Back to Wallet</router-link
     >
 
@@ -25,6 +29,9 @@
   <router-view />
   <!-- teleport target -->
   <div id="modals"></div>
+  <footer>
+    <a href="terms">Terms of Service</a>
+  </footer>
 </template>
 
 <script>
@@ -80,6 +87,23 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+footer {
+  top: 95%;
+  min-height: 5%;
+  width: 100%;
+  position: fixed;
+  padding: 10px 15px;
+  background-color: #282828;
+  border-top: 1px solid rgb(77, 77, 77);
+  text-align: right;
+}
+
+footer a {
+  color: rgb(210, 97, 214);
+  margin-right: 50px;
+  text-decoration: none;
 }
 
 #toolbar a {
