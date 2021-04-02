@@ -32,6 +32,16 @@
         <span class="plainValue">
           <a :href="walletLink">{{ account }}</a>
         </span>
+        <img
+          class="refresh"
+          src="../assets/images/copy.png"
+          width="23"
+          title="copy to clipboard"
+          @click="copyToClipboard(account)"
+        />
+        <span id="copyStatus" v-if="copyStatus !== undefined">{{
+          copyStatus
+        }}</span>
       </li>
       <li v-if="!ledgerApprovalPending">
         <label for="destination" :class="errors.destination ? 'errorLabel' : ''"
@@ -123,6 +133,7 @@
 import * as lamden from "lamden-ledger";
 import { Field, Form } from "vee-validate";
 import * as Yup from "yup";
+import { copyText } from "vue3-clipboard";
 
 export default {
   name: "TransferForm",
@@ -134,10 +145,7 @@ export default {
     const schema = Yup.object().shape({
       destination: Yup.string()
         .required("Destination is required")
-        .matches(
-          /^[a-f0-9]{64}$/,
-          "Not a valid lamden destination (public key)"
-        ),
+        .matches(/^[a-f0-9]{64}$/, "Not a valid lamden address (public key)"),
       amount: Yup.string()
         .required("Amount is required")
         .matches(/^[0-9]+\.?[0-9]*$/, "Amount must be valid positive number")
@@ -163,6 +171,7 @@ export default {
       timerTxStatus: undefined,
       updatingBalance: false,
       sendingTx: false,
+      copyStatus: undefined,
     };
   },
   props: {
@@ -311,6 +320,21 @@ export default {
           clearInterval(this.timerTxStatus);
         });
     },
+    showCopyStatus: function (statusText) {
+      this.copyStatus = statusText;
+      setTimeout(() => {
+        this.copyStatus = undefined;
+      }, 3000);
+    },
+    copyToClipboard: function (account) {
+      copyText(account, undefined, (error, event) => {
+        if (error) {
+          this.showCopyStatus("could not copy!!!");
+        } else {
+          this.showCopyStatus("copied!");
+        }
+      });
+    },
     updateBalance: function (account) {
       this.updatingBalance = true;
 
@@ -362,6 +386,10 @@ export default {
 
 
 <style >
+#copyStatus {
+  margin-left: 10px;
+}
+
 .errorLabel {
   margin-top: -27px;
 }

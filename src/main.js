@@ -5,6 +5,7 @@ import VueNumberInput from '@chenfengyuan/vue-number-input';
 import VueMarkdownIt from 'vue3-markdown-it';
 import router from './router/index.js'
 import VueUniversalModal from 'vue-universal-modal'
+import VueClipboard from 'vue3-clipboard'
 import 'vue-universal-modal/dist/index.css'
 
 // Create a new store instance.
@@ -31,6 +32,10 @@ app.use(VueUniversalModal, {
 })
 app.use(router);
 app.use(store);
+app.use(VueClipboard, {
+    autoSetContainer: true,
+    appendToBody: true,
+});
 //console.log(VueNumberInput.name)
 
 app.mount('#app')
