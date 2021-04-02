@@ -2,7 +2,12 @@
   <div v-if="ledgerApprovalPending">
     Please approve on your ledger to continue...
   </div>
-  <form v-if="!isSendingDisabled" v-on:submit.prevent="onSubmit">
+  <Form
+    v-if="!isSendingDisabled"
+    @submit="submitForm"
+    :validation-schema="schema"
+    v-slot="{ errors }"
+  >
     <ul class="flex-outer">
       <li v-if="!ledgerApprovalPending">
         <label>Network</label>
@@ -23,31 +28,47 @@
       </li>
 
       <li v-if="!ledgerApprovalPending">
-        <label for="destination">Account</label>
+        <label>Account</label>
         <span class="plainValue">
           <a :href="walletLink">{{ account }}</a>
         </span>
       </li>
       <li v-if="!ledgerApprovalPending">
-        <label for="destination">Destination</label>
-        <input
-          type="text"
-          id="destination"
-          placeholder="Enter destination address"
-          v-model="to"
-        />
+        <label for="destination" :class="errors.destination ? 'errorLabel' : ''"
+          >Destination</label
+        >
+        <div class="fullWidth">
+          <Field
+            name="destination"
+            type="text"
+            id="destination"
+            placeholder="Enter destination address"
+            v-model="to"
+          />
+          <div v-if="errors.destination" class="invalid-feedback">
+            {{ errors.destination }}
+          </div>
+        </div>
       </li>
       <li v-if="!ledgerApprovalPending">
-        <label for="amount">Amount</label>
-        <input
-          type="text"
-          id="amount"
-          placeholder="Enter TAU amount to send"
-          v-model.number="amount"
-        />
+        <label for="amount" :class="errors.amount ? 'errorLabel' : ''"
+          >Amount</label
+        >
+        <div class="fullWidth">
+          <Field
+            name="amount"
+            type="number"
+            id="amount"
+            placeholder="Enter amount to send"
+            v-model="amount"
+          />
+          <div v-if="errors.amount" class="invalid-feedback">
+            {{ errors.amount }}
+          </div>
+        </div>
       </li>
       <li v-if="!ledgerApprovalPending">
-        <label for="amount">Available Balance</label>
+        <label>Available Balance</label>
         <p v-if="!updatingBalance" class="plainValue">{{ balance }}</p>
         <p v-if="updatingBalance" class="plainValue updating">updating...</p>
 
@@ -83,10 +104,15 @@
         <p class="plainValue">{{ error }}</p>
       </li>
       <li v-if="!ledgerApprovalPending" class="centered">
-        <button :disabled="isSendingDisabled" type="submit">Send</button>
+        <button
+          :disabled="isSendingDisabled || sendingTx || !isFormComplete"
+          type="submit"
+        >
+          {{ sendingTx ? "Please check Tx on your Ledger..." : "Send" }}
+        </button>
       </li>
     </ul>
-  </form>
+  </Form>
 </template>
 
 
@@ -95,16 +121,40 @@
 
 <script>
 import * as lamden from "lamden-ledger";
+import { Field, Form } from "vee-validate";
+import * as Yup from "yup";
 
 export default {
   name: "TransferForm",
+  components: {
+    Field,
+    Form,
+  },
+  setup() {
+    const schema = Yup.object().shape({
+      destination: Yup.string()
+        .required("Destination is required")
+        .matches(
+          /^[a-f0-9]{64}$/,
+          "Not a valid lamden destination (public key)"
+        ),
+      amount: Yup.string()
+        .required("Amount is required")
+        .matches(/^[0-9]+\.?[0-9]*$/, "Amount must be valid positive number")
+        .typeError("Amount must be a number"),
+    });
+
+    return {
+      schema,
+    };
+  },
   data() {
     return {
       ledgerIndex: 0,
       ledgerApprovalPending: false,
       balance: 0,
       to: "",
-      amount: 0,
+      amount: null,
       txHash: "",
       txSuccess: undefined,
       txErrorMsg: "",
@@ -112,6 +162,7 @@ export default {
       timerBalance: undefined,
       timerTxStatus: undefined,
       updatingBalance: false,
+      sendingTx: false,
     };
   },
   props: {
@@ -120,6 +171,9 @@ export default {
   computed: {
     isMainnet: function () {
       return this.$store.state.mainnet;
+    },
+    isFormComplete() {
+      return this.to && this.amount;
     },
     isSendingDisabled: function () {
       return !(this.account !== undefined && this.account.length == 64);
@@ -178,13 +232,13 @@ export default {
           });
       }
     },
-    onSubmit: function () {
+    submitForm: function () {
       let tx = {
         sender: this.account,
         network: this.$store.state.mainnet ? "mainnet" : "testnet",
         kwargs: {
           to: this.to,
-          amount: this.amount,
+          amount: Number(this.amount),
         },
         contractName: "currency",
         methodName: "transfer",
@@ -204,6 +258,7 @@ export default {
       this.error = "";
       this.txSuccess = undefined;
       this.txErrorMsg = "";
+      this.sendingTx = true;
 
       lamden
         .sendTransaction(tx)
@@ -234,6 +289,9 @@ export default {
             this.txHash = "";
             this.error = e.message;
           }
+        })
+        .finally(() => {
+          this.sendingTx = false;
         });
     },
     readTxStatus: function (txHash) {
@@ -304,6 +362,27 @@ export default {
 
 
 <style >
+.errorLabel {
+  margin-top: -27px;
+}
+
+.fullWidth {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.fullWidth > input {
+  width: 100%;
+}
+
+.invalid-feedback {
+  color: red;
+  text-align: left;
+  margin-top: -5px;
+  margin-bottom: 10px;
+}
+
 .refresh {
   cursor: pointer;
   margin-left: 10px;
@@ -391,7 +470,8 @@ form {
   width: 150px;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="number"] {
   background: none;
   border: 2px solid rgb(158, 20, 121);
   padding: 12px 20px;
@@ -401,6 +481,12 @@ input[type="text"] {
   outline: none;
   box-shadow: none;
   color: white;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .flex-outer {
@@ -436,7 +522,7 @@ button {
 }
 
 button:disabled {
-  background-color: rgb(160, 160, 160); /* Green */
+  background-color: rgba(158, 20, 121, 0.4); /* Green */
   cursor: not-allowed;
 }
 
