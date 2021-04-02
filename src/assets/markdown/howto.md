@@ -10,7 +10,7 @@ For interacting with Lamden DApps, please use the official <a href="https://chro
 To use the Lamden Ledger wallet you need to...
 - have the Lamden App installed on your Ledger Nano S
 - use the chrome browser
-- enable WebHID for Chrome: Navigate to **chrome://flags** and enable **Experimental Web Platform features**<br>After Chrome version 89 is released, setting this flag should not be needed anymore.
+- if your chrome version is prior to 89 you need to enable WebHID for Chrome: Navigate to **chrome://flags** and enable **Experimental Web Platform features**.
 ## Important note!
 
 If you are using the wallet for the first time it's highly recommended to try it on the testnet.<br>
