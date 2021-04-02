@@ -4,7 +4,7 @@
   </div>
   <Form
     v-if="!isSendingDisabled"
-    @submit="onSubmit"
+    @submit="submitForm"
     :validation-schema="schema"
     v-slot="{ errors }"
   >
@@ -34,26 +34,38 @@
         </span>
       </li>
       <li v-if="!ledgerApprovalPending">
-        <label for="destination">Destination</label>
-        <Field
-          name="destination"
-          type="text"
-          id="destination"
-          placeholder="Enter destination address"
-          v-model="to"
-        />
-        <div class="invalid-feedback">{{ errors.destination }}</div>
+        <label for="destination" :class="errors.destination ? 'errorLabel' : ''"
+          >Destination</label
+        >
+        <div class="fullWidth">
+          <Field
+            name="destination"
+            type="text"
+            id="destination"
+            placeholder="Enter destination address"
+            v-model="to"
+          />
+          <div v-if="errors.destination" class="invalid-feedback">
+            {{ errors.destination }}
+          </div>
+        </div>
       </li>
       <li v-if="!ledgerApprovalPending">
-        <label for="amount">Amount</label>
-        <Field
-          name="amount"
-          type="number"
-          id="amount"
-          placeholder="Enter amount to send"
-          v-model="amount"
-        />
-        <div class="invalid-feedback">{{ errors.amount }}</div>
+        <label for="amount" :class="errors.amount ? 'errorLabel' : ''"
+          >Amount</label
+        >
+        <div class="fullWidth">
+          <Field
+            name="amount"
+            type="number"
+            id="amount"
+            placeholder="Enter amount to send"
+            v-model="amount"
+          />
+          <div v-if="errors.amount" class="invalid-feedback">
+            {{ errors.amount }}
+          </div>
+        </div>
       </li>
       <li v-if="!ledgerApprovalPending">
         <label>Available Balance</label>
@@ -92,7 +104,10 @@
         <p class="plainValue">{{ error }}</p>
       </li>
       <li v-if="!ledgerApprovalPending" class="centered">
-        <button :disabled="isSendingDisabled || sendingTx" type="submit">
+        <button
+          :disabled="isSendingDisabled || sendingTx || !isFormComplete"
+          type="submit"
+        >
           {{ sendingTx ? "Please check Tx on your Ledger..." : "Send" }}
         </button>
       </li>
@@ -123,20 +138,14 @@ export default {
           /^[a-f0-9]{64}$/,
           "Not a valid lamden destination (public key)"
         ),
-      amount: Yup.number()
+      amount: Yup.string()
         .required("Amount is required")
-        .positive("Amount must be positive"),
+        .matches(/^[0-9]+\.?[0-9]*$/, "Amount must be valid positive number")
+        .typeError("Amount must be a number"),
     });
-
-    const onSubmit = (values) => {
-      // display form values on success
-      alert("SUCCESS!! :-)\n\n" + JSON.stringify(values, null, 4));
-      submitForm();
-    };
 
     return {
       schema,
-      onSubmit,
     };
   },
   data() {
@@ -162,6 +171,9 @@ export default {
   computed: {
     isMainnet: function () {
       return this.$store.state.mainnet;
+    },
+    isFormComplete() {
+      return this.to && this.amount;
     },
     isSendingDisabled: function () {
       return !(this.account !== undefined && this.account.length == 64);
@@ -226,7 +238,7 @@ export default {
         network: this.$store.state.mainnet ? "mainnet" : "testnet",
         kwargs: {
           to: this.to,
-          amount: this.amount,
+          amount: Number(this.amount),
         },
         contractName: "currency",
         methodName: "transfer",
@@ -350,8 +362,25 @@ export default {
 
 
 <style >
+.errorLabel {
+  margin-top: -27px;
+}
+
+.fullWidth {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.fullWidth > input {
+  width: 100%;
+}
+
 .invalid-feedback {
   color: red;
+  text-align: left;
+  margin-top: -5px;
+  margin-bottom: 10px;
 }
 
 .refresh {
