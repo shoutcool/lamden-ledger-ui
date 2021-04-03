@@ -6,7 +6,7 @@
     v-if="!isSendingDisabled"
     @submit="submitForm"
     :validation-schema="schema"
-    v-slot="{ errors }"
+    v-slot="{ errors, meta }"
   >
     <ul class="flex-outer">
       <li v-if="!ledgerApprovalPending">
@@ -119,7 +119,7 @@
       </li>
       <li v-if="!ledgerApprovalPending" class="centered">
         <button
-          :disabled="isSendingDisabled || sendingTx || !isFormComplete"
+          :disabled="isSendingDisabled || sendingTx || !meta.valid"
           type="submit"
         >
           {{ sendingTx ? "Please check Tx on your Ledger..." : "Send" }}
@@ -186,11 +186,8 @@ export default {
     isMainnet: function () {
       return this.$store.state.mainnet;
     },
-    isFormComplete() {
-      return this.to && this.amount;
-    },
     isSendingDisabled: function () {
-      return !(this.account !== undefined && this.account.length == 64);
+      return this.account === undefined || this.account.length != 64;
     },
     isTxHashAvailable: function () {
       return this.txHash !== undefined && this.txHash.length == 64;
