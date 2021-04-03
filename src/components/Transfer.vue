@@ -103,12 +103,13 @@
         <label>Transaction Status</label>
         <p
           v-bind:class="{
-            success: txSuccess === true,
-            failed: txSuccess === false,
-            plainValue: txSuccess !== undefined,
+            success: txStatus === 'success',
+            failed: txStatus === 'failed',
+            updating: txStatus === 'pending',
+            plainValue: txStatus !== undefined,
           }"
         >
-          {{ txSuccess === true ? "Success" : "Failed: " }}
+          {{ getTxResultMessage }}
           <span v-if="isTxErrorAvailable"> {{ txErrorMsg }}</span>
         </p>
       </li>
@@ -167,7 +168,7 @@ export default {
       to: "",
       amount: null,
       txHash: "",
-      txSuccess: undefined,
+      txStatus: undefined,
       txErrorMsg: "",
       error: "",
       timerBalance: undefined,
@@ -208,7 +209,7 @@ export default {
       }.lamden.io/transactions/${this.txHash}`;
     },
     isTxStatusAvailable: function () {
-      return this.txSuccess !== undefined;
+      return this.txStatus !== undefined;
     },
     isTxErrorAvailable: function () {
       return this.txErrorMsg !== undefined && this.txErrorMsg.length > 0;
@@ -218,13 +219,24 @@ export default {
         "--copy-status-color": this.copyStatusColor,
       };
     },
+    getTxResultMessage() {
+      if (this.txStatus === "success") {
+        return "Success";
+      } else if (this.txStatus === "failed" && this.isTxErrorAvailable) {
+        return "Failed: ";
+      } else if (this.txStatus === "failed" && !this.isTxErrorAvailable) {
+        return "Failed";
+      } else {
+        return "Waiting for Tx to be processed... ";
+      }
+    },
   },
   methods: {
     onUpdate(newValue, oldValue) {
       console.log(newValue, oldValue);
       if (!isNaN(oldValue)) {
         this.txHash = undefined;
-        this.txSuccess = undefined;
+        this.txStatus = undefined;
         this.ledgerApprovalPending = true;
         this.error = "";
 
@@ -274,7 +286,7 @@ export default {
 
       this.txHash = "";
       this.error = "";
-      this.txSuccess = undefined;
+      this.txStatus = undefined;
       this.txErrorMsg = "";
       this.sendingTx = true;
 
@@ -289,13 +301,21 @@ export default {
           } else {
             this.txHash = response.hash;
 
-            this.timerBalance = setInterval(() => {
-              this.updateBalance(this.account);
-            }, 5000);
+            this.txStatus = "pending";
 
             this.timerTxStatus = setInterval(() => {
               this.readTxStatus(this.txHash);
-            }, 5000);
+            }, 3000);
+
+            setTimeout(() => {
+              if (this.txStatus === "pending") {
+                clearInterval(this.timerTxStatus);
+                this.txStatus = "failed";
+                this.txErrorMsg =
+                  "Tx result not received whitin 20 seconds. Please use the Tx Link above to check";
+                this.updateBalance(this.account);
+              }
+            }, 20000);
           }
         })
         .catch((e) => {
@@ -313,20 +333,50 @@ export default {
         });
     },
     readTxStatus: function (txHash) {
+      let processError = (err) => {
+        if (err.error && err.error === "Transaction not found.") {
+          //maybe network is under load, retry again...
+        } else {
+          clearInterval(this.timerTxStatus);
+          this.updateBalance(this.account);
+          this.txStatus = "failed";
+          this.txErrorMsg = JSON.stringify(errJson);
+        }
+      };
+
+      let processSuccess = (tx) => {
+        if (tx.status === 0) {
+          this.txStatus = "success";
+        } else {
+          this.txStatus = "failed";
+          this.txErrorMsg = tx.result;
+        }
+        clearInterval(this.timerTxStatus);
+        this.updateBalance(this.account);
+      };
+
+      let resStatus = 0;
       fetch(
         `https://${
           this.$store.state.mainnet ? "masternode-01" : "testnet-master-1"
         }.lamden.io/tx?hash=${txHash}`
       )
-        .then((response) => response.json())
-        .then((tx) => {
-          if (tx.status === 0) {
-            this.txSuccess = true;
-          } else {
-            this.txSuccess = false;
-            this.txErrorMsg = tx.result;
+        .then((res) => {
+          resStatus = res.status;
+          return res.json();
+        })
+        .then((response) => {
+          if (resStatus === 400) {
+            processError(response);
+          } else if (resStatus === 200) {
+            processSuccess(response);
           }
-          clearInterval(this.timerTxStatus);
+        })
+        .catch((err) => {
+          console.error("TxState Error: " + err);
+          this.txStatus = "failed";
+          this.txErrorMsg =
+            "Could not read Tx, please use the link above to check the result!";
         });
     },
     showCopyStatus: function (statusText, color) {
@@ -365,9 +415,7 @@ export default {
           clearInterval(this.timerBalance);
         })
         .catch(function (error) {
-          console.error(
-            error
-          ); /* this line can also throw, e.g. when console = {} */
+          console.error(error);
         })
         .finally(() => {
           this.updatingBalance = false;
@@ -382,7 +430,7 @@ export default {
     },
     isMainnet() {
       this.txHash = undefined;
-      this.txSuccess = undefined;
+      this.txStatus = undefined;
       this.updateBalance(this.account);
     },
   },
