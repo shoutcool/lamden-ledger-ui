@@ -39,9 +39,12 @@
           title="copy to clipboard"
           @click="copyToClipboard(account)"
         />
-        <span id="copyStatus" v-if="copyStatus !== undefined">{{
-          copyStatus
-        }}</span>
+        <span
+          id="copyStatus"
+          :style="cssVars"
+          v-if="copyStatus !== undefined"
+          >{{ copyStatus }}</span
+        >
       </li>
       <li v-if="!ledgerApprovalPending">
         <label for="destination" :class="errors.destination ? 'errorLabel' : ''"
@@ -172,6 +175,7 @@ export default {
       updatingBalance: false,
       sendingTx: false,
       copyStatus: undefined,
+      copyStatusColor: undefined,
     };
   },
   props: {
@@ -208,6 +212,11 @@ export default {
     },
     isTxErrorAvailable: function () {
       return this.txErrorMsg !== undefined && this.txErrorMsg.length > 0;
+    },
+    cssVars() {
+      return {
+        "--copy-status-color": this.copyStatusColor,
+      };
     },
   },
   methods: {
@@ -320,7 +329,8 @@ export default {
           clearInterval(this.timerTxStatus);
         });
     },
-    showCopyStatus: function (statusText) {
+    showCopyStatus: function (statusText, color) {
+      this.copyStatusColor = color;
       this.copyStatus = statusText;
       setTimeout(() => {
         this.copyStatus = undefined;
@@ -329,9 +339,9 @@ export default {
     copyToClipboard: function (account) {
       copyText(account, undefined, (error, event) => {
         if (error) {
-          this.showCopyStatus("could not copy!!!");
+          this.showCopyStatus("could not copy!!!", "#fa2e2e");
         } else {
-          this.showCopyStatus("copied!");
+          this.showCopyStatus("copied!", "#90ee90");
         }
       });
     },
@@ -388,6 +398,7 @@ export default {
 <style >
 #copyStatus {
   margin-left: 10px;
+  color: var(--copy-status-color);
 }
 
 .errorLabel {
@@ -532,7 +543,7 @@ input::-webkit-inner-spin-button {
 }
 
 a {
-  color: rgb(81, 187, 81);
+  color: lightgreen;
 }
 
 button {
