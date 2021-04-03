@@ -30,7 +30,7 @@
       <li v-if="!ledgerApprovalPending">
         <label>Account</label>
         <span class="plainValue">
-          <a :href="walletLink">{{ account }}</a>
+          <a :href="walletLink" target="_blank">{{ account }}</a>
         </span>
         <img
           class="refresh"
@@ -96,7 +96,7 @@
       <li v-if="isTxHashAvailable">
         <label>Transaction Hash</label>
         <span>
-          <a :href="txLink" class="plainValue">{{ txHash }}</a>
+          <a :href="txLink" target="_blank" class="plainValue">{{ txHash }}</a>
         </span>
       </li>
       <li v-if="isTxStatusAvailable">
